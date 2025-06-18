@@ -11,16 +11,16 @@
 \section{Audit Scope}\label{audit-scope}}
 
 \input{audit_scope.tex}
-
+ 
 \hypertarget{executive-summary}{%
 \section{Executive Summary}\label{executive-summary}}
 
 % FIXME -> PLACEHOLDERS are replace for the information in "./source/summary-information.conf"
-Over the course of __PLACEHOLDER__REVIEW_LENGTH days, the Cyfrin team conducted an audit on the
+Over the course of \textbf{__PLACEHOLDER__REVIEW_LENGTH} days, the CAP Security Cartel team conducted an audit on the 
 \href{__PLACEHOLDER__REPO_LINK}{__PLACEHOLDER__PROJECT_NAME}
 smart contracts provided by
 \href{__PLACEHOLDER__TEAM_WEBSITE}{__PLACEHOLDER__TEAM_NAME}.
-In this period, a total of __PLACEHOLDER__ISSUE_TOTAL_COUNT issues were found.
+In this period, a total of \textbf{__PLACEHOLDER__ISSUE_TOTAL_COUNT} issues were found.
 
 % insert new line
 \bigbreak
@@ -46,25 +46,10 @@ In this period, a total of __PLACEHOLDER__ISSUE_TOTAL_COUNT issues were found.
     \hline
     Repository & \href{__PLACEHOLDER__REPO_LINK}{__PLACEHOLDER__REPO_NAME} \\
     \hline
-    Commit & \href{__PLACEHOLDER__COMMIT_HASH_LINK}{\truncatehash{__PLACEHOLDER__COMMIT_HASH}} \\
+    Initial Commit & \href{__PLACEHOLDER__INITIAL_COMMIT_HASH_LINK}{\truncatehash{__PLACEHOLDER__INITIAL_COMMIT_HASH}} \\
     \hline
-    \IfStrEq{__PLACEHOLDER__FIX_COMMIT_HASH}{}{}
-    {Fix Commit & \href{__PLACEHOLDER__FIX_COMMIT_HASH_LINK}{\truncatehash{__PLACEHOLDER__FIX_COMMIT_HASH}} \\ \hline}
-    \IfStrEq{__PLACEHOLDER__REPO_LINK_2}{}{}
-    {Repository 2 & \href{__PLACEHOLDER__REPO_LINK_2}{__PLACEHOLDER__REPO_NAME_2} \\ \hline
-    Commit & \href{__PLACEHOLDER__COMMIT_HASH_LINK_2}{\truncatehash{__PLACEHOLDER__COMMIT_HASH_2}} \\
+    Final Commit & \href{__PLACEHOLDER__FINAL_COMMIT_HASH_LINK}{\truncatehash{__PLACEHOLDER__FINAL_COMMIT_HASH}} \\
     \hline
-    \IfStrEq{__PLACEHOLDER__FIX_COMMIT_HASH_2}{}{}
-    {Fix Commit & \href{__PLACEHOLDER__FIX_COMMIT_HASH_LINK_2}{\truncatehash{__PLACEHOLDER__FIX_COMMIT_HASH_2}} \\ \hline}
-    \hline}
-    \IfStrEq{__PLACEHOLDER__REPO_LINK_3}{}{}
-    {Repository 3 & \href{__PLACEHOLDER__REPO_LINK_3}{__PLACEHOLDER__REPO_NAME_3} \\
-    \hline
-    Commit & \href{__PLACEHOLDER__COMMIT_HASH_LINK_3}{\truncatehash{__PLACEHOLDER__COMMIT_HASH_3}} \\
-    \hline
-    \IfStrEq{__PLACEHOLDER__FIX_COMMIT_HASH_3}{}{}
-    {Fix Commit & \href{__PLACEHOLDER__FIX_COMMIT_HASH_LINK_3}{\truncatehash{__PLACEHOLDER__FIX_COMMIT_HASH_3}} \\ \hline}
-    \hline}
     Audit Timeline & __PLACEHOLDER__AUDIT_TIMELINE \\
     \hline
     Methods & __PLACEHOLDER__AUDIT_METHODS \\
@@ -81,13 +66,13 @@ In this period, a total of __PLACEHOLDER__ISSUE_TOTAL_COUNT issues were found.
     \hline
     High Risk & __PLACEHOLDER__ISSUE_HIGH_COUNT \\
     \hline
-    Medium Risk & __PLACEHOLDER__ISSUE_MEDIUM_COUNT \\
+    Medium Risk & __PLACEHOLDER__ISSUE_MEDIUM_COUNT \\ 
     \hline
     Low Risk & __PLACEHOLDER__ISSUE_LOW_COUNT \\
     \hline
     Informational & __PLACEHOLDER__ISSUE_INFORMATIONAL_COUNT \\
     \hline
-    Gas Optimizations & __PLACEHOLDER__ISSUE_GAS_OPTIMIZATION_COUNT \\
+    Gas Optimizations & __PLACEHOLDER__ISSUE_GAS_OPTIMIZATION_COUNT \\ 
     \hline
     Total Issues & __PLACEHOLDER__ISSUE_TOTAL_COUNT \\
     \hline
@@ -106,6 +91,33 @@ In this period, a total of __PLACEHOLDER__ISSUE_TOTAL_COUNT issues were found.
 \begin{longtable}{|p{12cm}|p{3cm}|}
   \caption*{\textbf{Summary of Findings}}
   % __PLACEHOLDER__SUMMARY_OF_FINDINGS_START
-    __PLACEHOLDER__SUMMARY_OF_FINDINGS
-  % __PLACEHOLDER__SUMMARY_OF_FINDINGS_END
+\hline\hyperlink{}{[H-1] Interest double counting in \texttt{maxRealization}} & Verified Fix \\
+\hline\hyperlink{}{[H-2] Interest rate manipulation in \texttt{VaultAdapter} due to multiplier calculation} & Verified Fix \\
+\hline\hyperlink{}{[M-1] Incorrect asset calculation when burning entire token supply} & Verified Fix \\
+\hline\hyperlink{}{[M-2] Incorrect time scaling in interest calculation} & Verified Fix \\
+\hline\hyperlink{}{[M-3] Admin can drain invested assets via \texttt{rescueERC20} function} & Verified Fix \\
+\hline\hyperlink{}{[M-4] Burn fee underestimated due to incorrect denominator} & Verified Fix \\
+\hline\hyperlink{}{[M-5] \texttt{ERC4626} rounding issues may cause system-wide failures in fractional reserve logic} & Verified Fix \\
+\hline\hyperlink{}{[M-6] Mint/burn kink curve overestimate fees due to incorrect formula} & Verified Fix \\
+\hline\hyperlink{}{[M-7] Interest rate manipulation for new borrowers} & Verified Fix \\
+\hline\hyperlink{}{[M-8] First-depositor share price inflation attack} & Acknowledged \\
+\hline\hyperlink{}{[L-1] Incorrect \texttt{AccessControl} address causes access control bypass} & Verified Fix \\
+\hline\hyperlink{}{[L-2] Repayment and liquidation may leave debt below minimum borrow threshold} & Verified Fix \\
+\hline\hyperlink{}{[L-3] Zero amount rejection prevents redemption of small balances} & Verified Fix \\
+\hline\hyperlink{}{[L-4] Inconsistent amount calculation for initial mint} & Verified Fix \\
+\hline\hyperlink{}{[L-5] Insufficient balance verification in vault \texttt{burn} and \texttt{redeem} functions} & Verified Fix \\
+\hline\hyperlink{}{[L-6] Insufficient divestment in burn function excludes fees} & Verified Fix \\
+\hline\hyperlink{}{[L-7] Incorrect ratio calculation causes excessive fees on first mint} & Verified Fix \\
+\hline\hyperlink{}{[L-8] Interest rate inaccuracy due to averaged utilization calculations} & Acknowledged \\
+\hline\hyperlink{}{[I-1] Redundant assignment of \texttt{lastUpdated} variable} & Verified Fix \\
+\hline\hyperlink{}{[I-2] Unsafe casting of potentially negative Chainlink price data} & Verified Fix \\
+\hline\hyperlink{}{[I-3] Missing vault existence check in \texttt{invest} function} & Verified Fix \\
+\hline\hyperlink{}{[I-4] Borrows can be griefed when token reserves are low} & Verified Fix \\
+\hline\hyperlink{}{[I-5] Emergency liquidation bonus depends on liquidation start timestamp} & Verified Fix \\
+\hline\hyperlink{}{[I-6] Inconsistent reserve pausing implementation} & Verified Fix \\
+\hline\hyperlink{}{[I-7] Missing parameter validation} & Verified Fix \\
+\hline\hyperlink{}{[G-1] Redundant contains check in agent addition} & Verified Fix \\
+\hline\hyperlink{}{[G-2] Avoid redundant contains check before add in \texttt{EnumerableSet}} & Verified Fix \\
+\hline
+% __PLACEHOLDER__SUMMARY_OF_FINDINGS_END
 \end{longtable}

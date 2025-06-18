@@ -54,7 +54,7 @@ export GITHUB_TOKEN=your-github-token
 
 Check contents and **manually update** the following files in `source/`:
 
-- `about_cyfrin.md`: Cyfrin description.
+- `about_CAPSC.md`: CAP Security Cartel description.
 - `additional_comments.md`: For extra information at the end of the report. It is commented by DEFAULT, please change if required.
 - `appendix.md`: For extra information at the end of the report. It is commented by DEFAULT, please change if required.
 - `assisting_auditors.md`: List of lead auditors who participated during the engagement.

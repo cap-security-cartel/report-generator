@@ -1,3 +1,5 @@
-[Hans](https://twitter.com/hansfriese)
+[0xleastwood](https://x.com/0xleastwood)
 
-[0kage](https://twitter.com/0kage_eth)
+[devtooligan](https://x.com/devtooligan)
+
+[zigtur](https://x.com/zigtur)

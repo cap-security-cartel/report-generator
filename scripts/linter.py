@@ -27,8 +27,8 @@ def replace_ampersand_in_findings_headings(line):
     return line
 
 
-def lint(report, team_name, source_org, source_repo_name, internal_org, internal_repo_name,):
-    for line in report:
+def lint(report, team_name, source_org, source_repo_name, internal_org, internal_repo_name):
+    for i, line in enumerate(report):
         new_line = line
         
         # Replace any internal organization repo links
@@ -40,58 +40,96 @@ def lint(report, team_name, source_org, source_repo_name, internal_org, internal
         # Replace any double backslashes with single backslashes (GitHub MathJax to LaTeX)
         new_line = new_line.replace('\\\\', '\\')
 
-        report[report.index(line)] = new_line
+        report[i] = new_line
 
     # Check for link structures ( format [something](url) ) that don't start with http
-    for line in report:
+    for i, line in enumerate(report):
         pos = line.find("](")
         while pos != -1:
             # Check if the first 4 characters after the open-paren are "http"
-            if line[pos+2:pos+6] != "http" and line[pos+2] != "#":
-                position = report.index(line)
-                print(f"Possible broken link at report.md line {position}: ")
-                print(f"\t{line}")
+            if pos + 6 < len(line) and line[pos+2:pos+6] != "http" and line[pos+2] != "#":
+                print(f"Possible broken link at report.md line {i+1}: ")
+                print(f"\t{line.strip()}")
             pos = line.find("](", pos+1)
 
     # Check for raw links ("http" string not immediately preceded by a link structure)
-    for line in report:
+    for i, line in enumerate(report):
         pos = line.find("http")
         while pos != -1:
             # Check if the character to the left of "http" is an open-paren preceded by a close-bracket
-            if line[pos-2:pos] != "](":
-                position = report.index(line)
-                print(f"Possible raw link at report.md line {position}: ")
-                print(f"\t{line}")
+            if pos >= 2 and line[pos-2:pos] != "](":
+                print(f"Possible raw link at report.md line {i+1}: ")
+                print(f"\t{line.strip()}")
             pos = line.find("http", pos+1)
 
     # Check for descriptions not starting in the same line as the headers
     lineNumber = 0
-    for line in report:        
-        # If there's a newline, merge the next line with the current one
-        if (
-            (line.startswith("**Description:**") and len(line) < len("**Description:**") + 5) or
-            (line.startswith("**Impact:**") and len(line) < len("**Impact:**") + 5) or
-            (line.startswith("**Proof of Concept:**") and len(line) < len("**Proof of Concept:**") + 5) or
-            (line.startswith("**Recommended Mitigation:**") and len(line) < len("**Recommended Mitigation:**") + 5) or
-            (line.startswith("**" + internal_org + ":**") and len(line) < len("**" + internal_org +":**") + 5) or
-            (line.startswith("**" + team_name + ":**") and len(line) < len("**" + team_name + ":**") + 5)):
-            
+    while lineNumber < len(report):
+        line = report[lineNumber]
+        
+        # Check for headers that should have content on the same line
+        should_merge = False
+        header_patterns = [
+            "## Summary",
+            "## Description", 
+            "## Impact Explanation",
+            "## Likelihood Explanation", 
+            "## Recommendation",
+            "## Proof of Concept",
+            f"**{internal_org}:**",
+            f"**{team_name}:**"
+        ]
+        
+        for pattern in header_patterns:
+            if line.startswith(pattern) and len(line.strip()) <= len(pattern) + 3:
+                should_merge = True
+                break
+        
+        if should_merge:
             # There might be more than one empty lines following the header, remove them
-            while lineNumber + 1 < len(report) and report[lineNumber + 1] == "":
+            while lineNumber + 1 < len(report) and report[lineNumber + 1].strip() == "":
                 del report[lineNumber + 1]
 
             if lineNumber + 1 < len(report):
                 nextLine = report[lineNumber + 1]
-                # If it's a list, code or quote, don't merge
+                # If it's a list, code block, quote, or another header, don't merge
                 if (not nextLine.lstrip().startswith("-") and
                     not nextLine.lstrip().startswith("1.") and
                     not nextLine.lstrip().startswith("```") and
                     not nextLine.lstrip().startswith("#") and
-                    not nextLine.lstrip().startswith(">")):
+                    not nextLine.lstrip().startswith(">") and
+                    not nextLine.lstrip().startswith("*")):
 
                     report[lineNumber] = line + " " + nextLine.lstrip()
                     del report[lineNumber + 1]
+                    continue  # Don't increment lineNumber since we deleted a line
 
-        lineNumber = lineNumber + 1
+        lineNumber += 1
+
+    # Clean up excessive blank lines (more than 2 consecutive)
+    i = 0
+    while i < len(report) - 2:
+        if (report[i].strip() == "" and 
+            report[i + 1].strip() == "" and 
+            report[i + 2].strip() == ""):
+            # Found 3+ consecutive blank lines, remove one
+            del report[i + 1]
+        else:
+            i += 1
+
+    # Ensure severity section headers are properly formatted
+    for i, line in enumerate(report):
+        # Fix severity headers that are just "##" or have partial text
+        if line.strip() == "##":
+            # Look ahead to see if this is followed by finding titles
+            if i + 1 < len(report) and report[i + 1].strip().startswith("###"):
+                # This appears to be a severity section marker, keep as is
+                continue
+        elif line.strip() in ["## nal", "## zation"]:
+            # These appear to be truncated severity markers, expand them
+            if "nal" in line:
+                report[i] = "## Informational"
+            elif "zation" in line:
+                report[i] = "## Gas Optimization"
 
     return report
