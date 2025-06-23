@@ -1,10 +1,10 @@
-##
+## High
 
 
 ### Interest double counting in `maxRealization`
 
 
-## Description In the `maxRealization()` function, the maximum interest that can be realized is calculated as the difference between the total debt token supply and the reserve's debt:
+**Description:** In the `maxRealization()` function, the maximum interest that can be realized is calculated as the difference between the total debt token supply and the reserve's debt:
 
 ```solidity
 if (totalDebt > reserve.debt) {
@@ -22,7 +22,8 @@ When `realizeInterest()` calls `maxRealization()` and subsequently borrows from 
 
 This significantly affects the accounting system and could lead to double realization of interest when `realizeInterest()` is called after some unrealized restaker interest has accumulated.
 
-## Recommendation The interest accounting mechanism must be reviewed such that the unrealized restaker interest is not being accounted twice. This can be done through tracking the total unrealized interest and subtracting it from `realization` in the `maxRealization()` calculation.
+
+**Recommendation:** The interest accounting mechanism must be reviewed such that the unrealized restaker interest is not being accounted twice. This can be done by tracking the total unrealized interest and subtracting it from `realization` in the `maxRealization()` calculation.
 
 ```solidity
 function maxRealization(ILender.LenderStorage storage $, address _asset)
@@ -50,9 +51,10 @@ function maxRealization(ILender.LenderStorage storage $, address _asset)
 
 ### Interest rate manipulation in `VaultAdapter` due to multiplier calculation
 
-## Summary The `VaultAdapter` contract contains a vulnerability in the `_applySlopes()` function where the interest rate can be manipulated by repeatedly calling the `rate()` function. When consecutive calls to `rate()` occur in the same block, the elapsed time parameter is zero, which leads to an incorrect multiplier calculation that allows attackers to drive interest rates to artificially high or low values.
+**Summary:** The `VaultAdapter` contract contains a vulnerability in the `_applySlopes()` function where the interest rate can be manipulated by repeatedly calling the `rate()` function. When consecutive calls to `rate()` occur in the same block, the elapsed time parameter is zero, which leads to an incorrect multiplier calculation that allows attackers to drive interest rates to artificially high or low values.
 
-## Description In the `VaultAdapter` contract, the `_applySlopes()` function calculates interest rates based on asset utilization and a multiplier factor. When utilization exceeds the kink point, the multiplier increases over time, and when utilization is below the kink point, the multiplier decreases over time.
+
+**Description:** In the `VaultAdapter` contract, the `_applySlopes()` function calculates interest rates based on asset utilization and a multiplier factor. When utilization exceeds the kink point, the multiplier increases over time, and when utilization is below the kink point, the multiplier decreases over time.
 
 The issue appears in how the multiplier is updated when `_elapsed` is zero, which happens when `rate()` is called multiple times in the same block. The relevant code:
 
@@ -75,20 +77,22 @@ When `_elapsed` is zero, the terms `(_elapsed * $.rate / 1e27)` evaluate to zero
 
 This means each call to `rate()` within the same block essentially multiplies or divides the multiplier by `1e27`, allowing the caller to manipulate `utilizationData.multiplier` to be at `$.maxMultiplier` or `$.minMultiplier`.
 
-## Recommendation To fix this vulnerability, the `_applySlopes()` function should be modified to multiply or divide `utilizationData.multiplier` by `1e27` depending whether or not it is above or below `slopes.kink`. This will also handle the case where `_elapsed` is zero.
+
+**Recommendation:** To fix this vulnerability, the `_applySlopes()` function should be modified to multiply or divide `utilizationData.multiplier` by `1e27` depending on whether or not it is above or below `slopes.kink`. This will also handle the case where `_elapsed` is zero.
 
 **CAP Labs:** Fixed in PR [127](https://github.com/cap-labs-dev/cap-contracts/pull/127) by implementing the suggested recommendation.
 
 **CAP Security Cartel:** Verified fix.
 
+
 \clearpage
-##
+## Medium
 
 
 ### Incorrect asset calculation when burning entire token supply
 
 
-## Description The contract's burn mechanism incorrectly calculates the amount of assets to return when the entire supply of tokens is being burned. The current implementation uses a relative proportion calculation that fails to account for the edge case of burning the entire supply, resulting in asset tokens being stranded in the contract. This effectively causes users to lose funds when the protocol has accrued yield or has experienced slashing events.
+**Description:** The contract's burn mechanism incorrectly calculates the amount of assets to return when the entire supply of tokens is being burned. The current implementation uses a relative proportion calculation that fails to account for the edge case of burning the entire supply, resulting in asset tokens being stranded in the contract. This effectively causes users to lose funds when the protocol has accrued yield or has experienced slashing events.
 
 
 In the `_amountOutBeforeFee` function in MinterLogic.sol, the logic for burning tokens has a flaw when the entire supply is being burned:
@@ -106,7 +110,8 @@ When burning the entire supply, the function scales the amount of cap tokens bei
 
 The correct approach when burning the entire supply would be to return all assets of that type remaining in the contract, since there would be no other token holders with claims on those assets.
 
-## Proof of Concept The provided PoC demonstrates two scenarios:
+
+**Proof of Concept:** The provided PoC demonstrates two scenarios:
 
 1. When the contract has been slashed (lost assets), burning the entire supply fails because the calculation expects more assets than exist in the contract.
 2. When the contract has accrued yield, burning the entire supply leaves assets stranded in the contract.
@@ -134,7 +139,8 @@ function test_burn_all() public {
 }
 ```
 
-## Recommendation Modify the `_amountOutBeforeFee` function to use `assetValue` when burning the entire supply:
+
+**Recommendation:** Modify the `_amountOutBeforeFee` function to use `assetValue` when burning the entire supply:
 
 ```diff
 if (params.amount == capSupply) {
@@ -156,7 +162,7 @@ This change ensures that when a user burns the entire supply, they receive asset
 ### Incorrect time scaling in interest calculation
 
 
-## Description The `accruedRestakerInterest()` function in the `ViewLogic` contract incorrectly scales the interest rate calculation by not accounting for the yearly to per-second rate conversion. This results in significantly inflated interest accrual, potentially causing users to see incorrect balances and leading to system insolvency.
+**Description:** The `accruedRestakerInterest()` function in the `ViewLogic` contract incorrectly scales the interest rate calculation by not accounting for the yearly to per-second rate conversion. This results in significantly inflated interest accrual, potentially causing users to see incorrect balances and leading to system insolvency.
 
 
 The `accruedRestakerInterest()` function calculates the accrued interest by multiplying the debt balance by the rate and elapsed time:
@@ -180,7 +186,8 @@ The issue is that `rate` is defined as a yearly interest rate (as indicated in t
 
 For example, if the yearly rate is 5% (0.05 encoded as 5 * 10^25 in ray format), and a week passes, the function would calculate interest as if the rate were 5% per second rather than 5% per year, resulting in an astronomical interest amount.
 
-## Recommendation Modify the `accruedRestakerInterest()` function to properly scale the yearly rate to a per-second rate by dividing by the number of seconds in a year:
+
+**Recommendation:** Modify the `accruedRestakerInterest()` function to properly scale the yearly rate to a per-second rate by dividing by the number of seconds in a year:
 
 ```diff
 function accruedRestakerInterest(ILender.LenderStorage storage $, address _agent, address _asset)
@@ -224,7 +231,7 @@ function accruedRestakerInterest(ILender.LenderStorage storage $, address _agent
 
 ### Admin can drain invested assets via `rescueERC20` function
 
-## Description The `rescueERC20()` function is designed with a protection mechanism that prevents the removal of listed assets from the vault.
+**Description:** The `rescueERC20()` function is designed with a protection mechanism that prevents the removal of listed assets from the vault.
 
 ```solidity
 function rescueERC20(IVault.VaultStorage storage $, address _asset, address _receiver) external {
@@ -240,7 +247,8 @@ However, when assets are invested in external ERC4626 vaults through `Fractional
 
 This oversight allows an admin to call `rescueERC20()` with the address of the ERC4626 share tokens and transfer them to any address, effectively draining all funds deposited by liquidity providers.
 
-## Recommendation Update `FractionalReserveLogic.invest()` to track for external vaults in which funds are invested. Then, add checks in `VaultLogic.rescueERC20()` to ensure that the token to rescue is not one of these external vaults.
+
+**Recommendation:** Update `FractionalReserveLogic.invest()` to track external vaults in which funds are invested. Then, add checks in `VaultLogic.rescueERC20()` to ensure that the token to rescue is not one of these external vaults.
 
 **CAP Labs:** Fixed in PR [132](https://github.com/cap-labs-dev/cap-contracts/pull/132) by integrating `EnumerableSet` to efficiently track vaults.
 
@@ -249,7 +257,7 @@ This oversight allows an admin to call `rescueERC20()` with the address of the E
 
 ### Burn fee underestimated due to incorrect denominator
 
-## Description The `_applyFeeSlopes()` function implements an incorrect calculation in the burn fee rate formula when the ratio is below the burn kink ratio. The current implementation uses `(RAY_PRECISION - fees.burnKinkRatio)` as the denominator, but this doesn't align with the expected behavior for a fee curve calculation.
+**Description:** The `_applyFeeSlopes()` function implements an incorrect calculation in the burn fee rate formula when the ratio is below the burn kink ratio. The current implementation uses `(RAY_PRECISION - fees.burnKinkRatio)` as the denominator, but this doesn't align with the expected behavior for a fee curve calculation.
 
 The issue lies in the following calculation:
 
@@ -262,7 +270,8 @@ if (params.ratio < fees.optimalRatio) {
 
 For a kinked fee curve design, the denominator should be the `burnKinkRatio` itself, not `(RAY_PRECISION - fees.burnKinkRatio)`. The current formula generates a much smaller fee rate than intended when the ratio is below the kink.
 
-## Recommendation Modify the calculation to use the correct denominator:
+
+**Recommendation:** Modify the calculation to use the correct denominator:
 
 ```diff
 if (params.ratio < fees.optimalRatio) {
@@ -279,9 +288,10 @@ if (params.ratio < fees.optimalRatio) {
 
 ### `ERC4626` rounding issues may cause system-wide failures in fractional reserve logic
 
-## Summary The `FractionalReserveLogic.divest()` function reverts when `redeemedAssets < loanedAssets`, which can cause system-wide failures due to `ERC4626` rounding issues. This vulnerability can break critical operations including borrows, repayments, and liquidations when the vault is nearly depleted.
+**Summary:** The `FractionalReserveLogic.divest()` function reverts when `redeemedAssets < loanedAssets`, which can cause system-wide failures due to `ERC4626` rounding issues. This vulnerability can break critical operations including borrows, repayments, and liquidations when the vault is nearly depleted.
 
-## Description In the `FractionalReserveLogic` contract, the `divest()` function contains conditional logic that transfers excess yield to the fee auction when `redeemedAssets > loanedAssets`, but reverts with `LossFromFractionalReserve` when `redeemedAssets < loanedAssets`:
+
+**Description:** In the `FractionalReserveLogic` contract, the `divest()` function contains conditional logic that transfers excess yield to the fee auction when `redeemedAssets > loanedAssets`, but reverts with `LossFromFractionalReserve` when `redeemedAssets < loanedAssets`:
 
 ```solidity
 if (redeemedAssets > loanedAssets) {
@@ -301,7 +311,8 @@ This creates the following issues:
 
 4. When the vault is nearly depleted (most assets are borrowed), these rounding discrepancies can trigger the `LossFromFractionalReserve` revert, blocking critical system functions.
 
-## Impact Explanation The impact is medium. When triggered, this issue causes system-wide failures affecting core protocol functionality:
+
+**Impact Explanation:** The impact is medium. When triggered, this issue causes system-wide failures affecting core protocol functionality:
 
 1. Borrows become impossible to execute
 2. Repayments cannot be processed
@@ -311,7 +322,8 @@ These failures persist until new deposits are made into the vault, potentially c
 
 This can be mitigated by batching transactions to make a small vault deposit.
 
-## Likelihood Explanation The likelihood is medium. The issue emerges in specific edge cases:
+
+**Likelihood Explanation:** The likelihood is medium. The issue emerges in specific edge cases:
 
 1. When the `ERC4626` vault is nearly depleted
 2. When most assets are being borrowed
@@ -320,7 +332,8 @@ This can be mitigated by batching transactions to make a small vault deposit.
 
 These conditions are likely to occur in normal protocol operation, especially during periods of high utilization.
 
-## Recommendation Consider one of the following changes to address this issue:
+
+**Recommendation:** Consider one of the following changes to address this issue:
 
 1. Modify the `divest()` function to add a small tolerance for rounding errors:
 
@@ -364,7 +377,7 @@ if (redeemedAssets > loanedAssets) {
 
 ### Mint/burn kink curve overestimate fees due to incorrect formula
 
-## Description The fee calculation for the mint curve when the ratio is greater than the optimal ratio is incorrect. The current implementation always accounts for `fees.minMintFee` before applying `slope0` on top of it.
+**Description:** The fee calculation for the mint curve when the ratio is greater than the optimal ratio is incorrect. The current implementation always accounts for `fees.minMintFee` before applying `slope0` on top of it.
 
 ```solidity
 function _applyFeeSlopes(IMinter.FeeData memory fees, IMinter.FeeSlopeParams memory params) {
@@ -388,7 +401,8 @@ However, the following shape should be expected instead:
 
 ![Image](https://github.com/user-attachments/assets/9fbc566c-ac12-4549-870f-6be9ee5483c7)
 
-## Recommendation The `slope0` should only be calculated on the `[fees.optimalRatio, fees.mintKinkRatio]` range to ensure correct shape of the mint fee curve. Similarly, this should also be somewhat true for burns where `slope0` should be calculated on the `[fees.burnKinkRatio, fees.optimalRatio]` range.
+
+**Recommendation:** The `slope0` should only be calculated on the `[fees.optimalRatio, fees.mintKinkRatio]` range to ensure correct shape of the mint fee curve. Similarly, this should also be somewhat true for burns where `slope0` should be calculated on the `[fees.burnKinkRatio, fees.optimalRatio]` range.
 
 **CAP Labs:** Fixed in PR [130](https://github.com/cap-labs-dev/cap-contracts/pull/130). The fix was also applied to the burn side as well.
 
@@ -397,9 +411,10 @@ However, the following shape should be expected instead:
 
 ### Interest rate manipulation for new borrowers
 
-## Summary A vulnerability exists in the `VaultAdapter` contract where new borrowers can manipulate interest rates to benefit themselves at the expense of existing borrowers. When an agent makes their first borrow, they increase utilization and affect interest rates for all users, but may not bear the cost of this increase themselves due to the sequence of operations.
+**Summary:** A vulnerability exists in the `VaultAdapter` contract where new borrowers can manipulate interest rates to benefit themselves at the expense of existing borrowers. When an agent makes their first borrow, they increase utilization and affect interest rates for all users, but may not bear the cost of this increase themselves due to the sequence of operations.
 
-## Description The issue occurs in the `rate()` function of the `VaultAdapter` contract. When calculating interest rates, the function updates utilization data based on time elapsed since the last update:
+
+**Description:** The issue occurs in the `rate()` function of the `VaultAdapter` contract. When calculating interest rates, the function updates utilization data based on time elapsed since the last update:
 
 ```solidity
 if (block.timestamp > utilizationData.lastUpdate) {
@@ -423,7 +438,7 @@ if (block.timestamp > utilizationData.lastUpdate) {
 The vulnerability arises from the sequence of operations in the broader protocol:
 1. A new borrower borrows funds from the vault, increasing spot utilization.
 2. Upon repayment, the borrower bears no cost for the borrow as tokens were initially minted on the updated index.
-3. After repayment, the debt token's `$.interestRate` remains the same as when the borrow was made, keeping utilization elevated when this does not accurately the vault's utilized asset amount.
+3. After repayment, the debt token's `$.interestRate` remains the same as when the borrow was made, keeping utilization elevated when this does not accurately reflect the vault's utilized asset amount.
 
 This sequence means that the interest rate increase caused by the new borrower's actions is charged to existing debt token holders. This creates a scenario where:
 
@@ -433,7 +448,8 @@ This sequence means that the interest rate increase caused by the new borrower's
 4. But cause other borrowers to pay increased interest rates due to the temporary spike in utilization on future blocks.
 5. This persists until the debt token's index is updated again, however, the attacker could maintain full asset utilization by being the first user to borrow/repay on the vault in each block.
 
-## Recommendation Consider adjusting the sequence of operations so that debt tokens are minted before the utilization index is updated:
+
+**Recommendation:** Consider adjusting the sequence of operations so that debt tokens are minted before the utilization index is updated:
 
 ```diff
 - // Current flow: Repay → Burn debt tokens → Update index → Transfer assets
@@ -447,9 +463,10 @@ This sequence means that the interest rate increase caused by the new borrower's
 
 ### First-depositor share price inflation attack
 
-## Summary The `StakedCap` contract is vulnerable to a first-depositor inflation attack, where an attacker can manipulate the share price to steal funds from subsequent depositors. This occurs because the contract lacks protection against share price manipulation and does not enforce a minimum deposit amount or use any share price normalization technique.
+**Summary:** The `StakedCap` contract is vulnerable to a first-depositor inflation attack, where an attacker can manipulate the share price to steal funds from subsequent depositors. This occurs because the contract lacks protection against share price manipulation and does not enforce a minimum deposit amount or use any share price normalization technique.
 
-## Description The `StakedCap` contract implements the `ERC4626` standard for tokenized vaults without additional protections against share price manipulation. The attack works as follows:
+
+**Description:** The `StakedCap` contract implements the `ERC4626` standard for tokenized vaults without additional protections against share price manipulation. The attack works as follows:
 
 1. An attacker becomes the first depositor by depositing a minimal amount (e.g., 1 wei) to get 1 share.
 2. The attacker then transfers additional tokens directly to the contract and calls `notify()` to signal a yield distribution.
@@ -466,7 +483,8 @@ The vulnerability exists because:
 
 This allows an attacker to steal funds from subsequent depositors. Any user depositing an amount that results in less than 1 share (after the inflation) will lose their entire deposit, with the value accruing to the attacker. The attack can be executed repeatedly, and the attacker can continue to inflate the share price to maximize the stolen amount.
 
-## Recommendation Several strategies can be implemented to mitigate this vulnerability:
+
+**Recommendation:** Several strategies can be implemented to mitigate this vulnerability:
 
 1. Implement a minimum deposit amount that is significantly higher than 1 wei.
 
@@ -519,13 +537,14 @@ function convertToAssets(uint256 shares) public view override returns (uint256) 
 
 **CAP Security Cartel:** Acknowledged that the team will handle this on deployment. Deposit front-runners take on some risk if they deposit and someone else deposits before any additional assets have started vesting, hence this seems unlikely in the first place.
 
+
 \clearpage
-##
+## Low
 
 
 ### Incorrect `AccessControl` address causes access control bypass
 
-## Description In the `Access` contract, the `_checkAccess()` function makes an external call to the `accessControl.checkAccess()` function. The issue is that if this address is uninitialized or points to an EOA, the call will not revert but instead succeed silently, effectively bypassing the access control check.
+**Description:** In the `Access` contract, the `_checkAccess()` function makes an external call to the `accessControl.checkAccess()` function. The issue is that if this address is uninitialized or points to an EOA, the call will not revert but instead succeed silently, effectively bypassing the access control check.
 
 In Solidity, low-level calls to an empty address don't revert when no return value is expected. In this case, since the function doesn't check any return value from `checkAccess()`, a call to any zero code address would silently succeed, allowing unauthorized access.
 
@@ -534,7 +553,8 @@ This vulnerability could occur if:
 - The contract at the `accessControl` address is self-destructed
 - A deployment script error causes the address to be set incorrectly
 
-## Recommendation Make the following changes to properly handle access checks:
+
+**Recommendation:** Make the following changes to properly handle access checks:
 
 1. Modify the AccessControl contract's `checkAccess()` function to return a boolean instead of reverting:
 
@@ -573,7 +593,7 @@ This approach explicitly handles the case where the accessControl address is not
 
 ### Repayment and liquidation may leave debt below minimum borrow threshold
 
-## Description The protocol enforces a minimum borrow amount when users initially borrow funds through the `validateBorrow()` function:
+**Description:** The protocol enforces a minimum borrow amount when users initially borrow funds through the `validateBorrow()` function:
 
 ```solidity
 if (params.amount < $.reservesData[params.asset].minBorrow) revert MinBorrowAmount();
@@ -585,7 +605,8 @@ However, no similar validation exists in the `repay()` or `liquidate()` function
 2. Vulnerable to various small-loan attack vectors, including Sybil attacks where an attacker creates many small positions
 3. Less efficient from a gas and accounting perspective
 
-## Recommendation Add a check in both the `repay()` and `liquidate()` functions to ensure that if the remaining debt after the operation is not zero, it must remain above the minimum borrow threshold. This approach ensures that:
+
+**Recommendation:** Add a check in both the `repay()` and `liquidate()` functions to ensure that if the remaining debt after the operation is not zero, it must remain above the minimum borrow threshold. This approach ensures that:
 1. Normal repayments either fully clear the debt or maintain the minimum required amount
 2. Liquidations can still occur for small positions but generally avoid leaving dust amounts
 3. The protocol maintains efficiency by preventing a proliferation of small positions
@@ -658,7 +679,7 @@ function liquidate(ILender.LenderStorage storage $, ILender.RepayParams memory p
 
 ### Zero amount rejection prevents redemption of small balances
 
-## Description In the `redeem()` function of the `VaultLogic` library, there's a check that prevents redeeming when `amountsOut[i]` equals zero.
+**Description:** In the `redeem()` function of the `VaultLogic` library, there's a check that prevents redeeming when `amountsOut[i]` equals zero.
 
 ```solidity
 if (params.amountsOut[i] == 0) revert InvalidAmount();
@@ -674,7 +695,8 @@ if (params.amountsOut[i] < params.minAmountsOut[i]) {
 }
 ```
 
-## Recommendation Remove the zero amount check to allow redemption of very small balances:
+
+**Recommendation:** Remove the zero amount check to allow redemption of very small balances:
 
 ```diff
 - if (params.amountsOut[i] == 0) revert InvalidAmount();
@@ -687,7 +709,7 @@ if (params.amountsOut[i] < params.minAmountsOut[i]) {
 
 ### Inconsistent amount calculation for initial mint
 
-## Description In the `MinterLogic._amountOutBeforeFee()` function, there's an inconsistency in how the output amount is calculated when minting the first tokens (i.e. `capSupply == 0`). The current implementation directly converts the input amount based on decimal differences rather than using the asset's value, which is inconsistent with how amounts are calculated for subsequent mints.
+**Description:** In the `MinterLogic._amountOutBeforeFee()` function, there's an inconsistency in how the output amount is calculated when minting the first tokens (i.e. `capSupply == 0`). The current implementation directly converts the input amount based on decimal differences rather than using the asset's value, which is inconsistent with how amounts are calculated for subsequent mints.
 
 ```solidity
 if (params.mint) {
@@ -704,7 +726,8 @@ if (params.mint) {
 
 For non-initial mints, the calculation uses `assetValue * capDecimalsPow / capPrice`, which accounts for the price of both the input asset and the cap token. However, for the initial mint, it only adjusts for decimal differences without considering the asset price.
 
-## Recommendation For consistency and to properly account for asset prices during the initial mint, consider updating the calculation to use the same value-based approach:
+
+**Recommendation:** For consistency and to properly account for asset prices during the initial mint, consider updating the calculation to use the same value-based approach:
 
 ```diff
 if (params.mint) {
@@ -727,9 +750,10 @@ if (params.mint) {
 
 ### Insufficient balance verification in vault `burn` and `redeem` functions
 
-## Summary The `VaultLogic` library has a vulnerability in the `burn()` and `redeem()` functions where the balance verification does not account for fees, leading to potential underflows and accounting inconsistencies. While the functions deduct both the principal amount and fees from total supplies, they only verify availability of the principal amount.
+**Summary:** The `VaultLogic` library has a vulnerability in the `burn()` and `redeem()` functions where the balance verification does not account for fees, leading to potential underflows and accounting inconsistencies. While the functions deduct both the principal amount and fees from total supplies, they only verify availability of the principal amount.
 
-## Description The `burn()` and `redeem()` functions in the `VaultLogic` library deduct both the output amount and fees from `totalSupplies`, but only verify that the output amount is available using the `_verifyBalance()` function. This creates a discrepancy between what is verified and what is actually deducted.
+
+**Description:** The `burn()` and `redeem()` functions in the `VaultLogic` library deduct both the output amount and fees from `totalSupplies`, but only verify that the output amount is available using the `_verifyBalance()` function. This creates a discrepancy between what is verified and what is actually deducted.
 
 In the `burn()` function:
 ```solidity
@@ -745,7 +769,8 @@ $.totalSupplies[asset] -= params.amountsOut[i] + params.fees[i];
 
 The `_verifyBalance()` function checks if there's enough available balance (total supplies minus total borrows) for a given amount, but it's not accounting for the additional fee that will be deducted.
 
-## Recommendation Update the `burn()` and `redeem()` functions to verify the total amount being deducted, including fees:
+
+**Recommendation:** Update the `burn()` and `redeem()` functions to verify the total amount being deducted, including fees:
 
 ```diff
 function burn(IVault.VaultStorage storage $, IVault.MintBurnParams memory params)
@@ -795,7 +820,7 @@ for (uint256 i; i < length; ++i) {
 
 ### Insufficient divestment in burn function excludes fees
 
-## Description In the `burn()` function, users can withdraw an asset by burning their cap tokens. The function calculates both the withdrawal amount (`amountOut`) and a fee to be paid:
+**Description:** In the `burn()` function, users can withdraw an asset by burning their cap tokens. The function calculates both the withdrawal amount (`amountOut`) and a fee to be paid:
 
 ```solidity
 function burn(address _asset, uint256 _amountIn, uint256 _minAmountOut, address _receiver, uint256 _deadline)
@@ -824,7 +849,7 @@ function burn(address _asset, uint256 _amountIn, uint256 _minAmountOut, address 
 The issue is that the `divest(_asset, amountOut)` call only ensures there's enough liquidity for the base withdrawal amount, but not for the additional fee. As the `VaultLogic.burn()` implementation transfers both `amountOut` and `fee`, this could lead to insufficient funds being available when the fee is greater than the reserve amount.
 
 
-## Recommendation Update the `burn()` function to divest the total amount needed for the withdrawal, including both the base amount and the fee:
+**Recommendation:** Update the `burn()` function to divest the total amount needed for the withdrawal, including both the base amount and the fee:
 
 ```diff
 function burn(address _asset, uint256 _amountIn, uint256 _minAmountOut, address _receiver, uint256 _deadline)
@@ -859,7 +884,7 @@ function burn(address _asset, uint256 _amountIn, uint256 _minAmountOut, address 
 
 ### Incorrect ratio calculation causes excessive fees on first mint
 
-## Description In the `MinterLogic._amountOutBeforeFee()` function, the first mint operation (when `capSupply == 0`) sets `newRatio = RAY_PRECISION` (representing 100%). This ratio is used in the fee calculation logic and can lead to excessive fees being charged to users during the first mint operation.
+**Description:** In the `MinterLogic._amountOutBeforeFee()` function, the first mint operation (when `capSupply == 0`) sets `newRatio = RAY_PRECISION` (representing 100%). This ratio is used in the fee calculation logic and can lead to excessive fees being charged to users during the first mint operation.
 
 The issue occurs because:
 
@@ -868,7 +893,8 @@ The issue occurs because:
 3. If `RAY_PRECISION > fees.optimalRatio`, this will trigger additional fees from the slope calculations
 4. The first mint should logically not be penalized with excess fees as it's establishing the initial state
 
-## Recommendation Modify the ratio calculation for the first mint case to prevent excessive fees:
+
+**Recommendation:** Modify the ratio calculation for the first mint case to prevent excessive fees:
 
 ```diff
 if (params.mint) {
@@ -890,7 +916,7 @@ if (params.mint) {
 
 ### Interest rate inaccuracy due to averaged utilization calculations
 
-## Description The `VaultAdapter` contract calculates interest rates based on utilization ratios, but uses a simplified averaging approach that may lead to inaccurate interest rate determinations. Specifically, in the `rate()` function, utilization is calculated as:
+**Description:** The `VaultAdapter` contract calculates interest rates based on utilization ratios, but uses a simplified averaging approach that may lead to inaccurate interest rate determinations. Specifically, in the `rate()` function, utilization is calculated as:
 
 ```solidity
 if (elapsed != block.timestamp) {
@@ -914,15 +940,17 @@ When utilization fluctuates around the kink point during the elapsed period, the
 
 Additionally, the multiplier adjustments are cumulative and depend on how far utilization is from the kink, which compounds the inaccuracy when using averaged values.
 
-## Recommendation Consider updating the interest rate calculation more frequently, ideally on each vault interaction that affects utilization (including deposits and withdrawals), to ensure that rates accurately reflect actual utilization patterns. This would prevent the need for averaging over long periods.
+
+**Recommendation:** Consider updating the interest rate calculation more frequently, ideally on each vault interaction that affects utilization (including deposits and withdrawals), to ensure that rates accurately reflect actual utilization patterns. This would prevent the need for averaging over long periods.
 
 If frequent updates aren't practical, consider implementing a more sophisticated tracking mechanism that records significant utilization changes, especially those that cross the kink threshold, and adjusts rates accordingly rather than using a simple time-weighted average.
 
 **CAP Labs:** I think at this time we will acknowledge the issue but won't fix. We will keep the recommendations in mind for any changes down the line.
 
-In order to keep the vault and lender separate we wouldn't want to notify on every utilization change. A more sophisticated interest rate system would take more time than we have to implement and test and get reviewed.
+In order to keep the vault and lender separate, we wouldn't want to notify on every utilization change. A more sophisticated interest rate system would take more time than we have to implement and test and get reviewed.
 
 **CAP Security Cartel:** Acknowledged.
+
 
 \clearpage
 ## Informational
@@ -930,7 +958,7 @@ In order to keep the vault and lender separate we wouldn't want to notify on eve
 
 ### Redundant assignment of `lastUpdated` variable
 
-## Description In `CapTokenAdapter.price()`, the `lastUpdated` variable is assigned the value of `block.timestamp` twice. This doesn't cause any functional issues but is an unnecessary operation that could be removed to improve code clarity and slightly reduce gas consumption.
+**Description:** In `CapTokenAdapter.price()`, the `lastUpdated` variable is assigned the value of `block.timestamp` twice. This doesn't cause any functional issues but is an unnecessary operation that could be removed to improve code clarity and slightly reduce gas consumption.
 
 ```solidity
 lastUpdated = block.timestamp;  // First assignment
@@ -939,7 +967,8 @@ uint256 totalUsdValue;
 lastUpdated = block.timestamp;  // Redundant second assignment
 ```
 
-## Recommendation Remove the redundant assignment to improve code clarity and gas efficiency:
+
+**Recommendation:** Remove the redundant assignment to improve code clarity and gas efficiency:
 
 ```diff
 function price(address _asset) external view returns (uint256 latestAnswer, uint256 lastUpdated) {
@@ -967,7 +996,7 @@ function price(address _asset) external view returns (uint256 latestAnswer, uint
 
 ### Unsafe casting of potentially negative Chainlink price data
 
-## Description The `ChainlinkAdapter.price()` function performs an unsafe type conversion from `int256` to `uint256` when processing price data from Chainlink oracles. While Chainlink price feeds are not expected to return negative values under normal circumstances, there is no validation to ensure the returned price is positive before the conversion.
+**Description:** The `ChainlinkAdapter.price()` function performs an unsafe type conversion from `int256` to `uint256` when processing price data from Chainlink oracles. While Chainlink price feeds are not expected to return negative values under normal circumstances, there is no validation to ensure the returned price is positive before the conversion.
 
 ```solidity
 function price(address _source) external view returns (uint256 latestAnswer, uint256 lastUpdated) {
@@ -982,7 +1011,8 @@ function price(address _source) external view returns (uint256 latestAnswer, uin
 
 If a Chainlink oracle were to return a negative value (potentially due to a malfunction, implementation error, or manipulation), the unchecked conversion to `uint256` would result in an extremely large positive value due to how two's complement encoding works. This could lead to incorrect price information being used in downstream calculations, potentially affecting protocol solvency or user funds.
 
-## Recommendation Add a validation check to ensure the returned price is positive before performing the conversion.
+
+**Recommendation:** Add a validation check to ensure the returned price is positive before performing the conversion.
 
 ```diff
 function price(address _source) external view returns (uint256 latestAnswer, uint256 lastUpdated) {
@@ -1004,7 +1034,7 @@ function price(address _source) external view returns (uint256 latestAnswer, uin
 
 ### Missing vault existence check in `invest` function
 
-## Description In the `FractionalReserveLogic.invest()` function, there is no explicit check to verify that a vault exists for an asset before attempting to deposit funds. Currently, if no vault is configured for an asset (i.e., `$.vault[_asset] == address(0)`), the function will continue execution until it fails at the `forceApprove()` call due to the `SafeERC20` library's protections against approving a zero address.
+**Description:** In the `FractionalReserveLogic.invest()` function, there is no explicit check to verify that a vault exists for an asset before attempting to deposit funds. Currently, if no vault is configured for an asset (i.e., `$.vault[_asset] == address(0)`), the function will continue execution until it fails at the `forceApprove()` call due to the `SafeERC20` library's protections against approving a zero address.
 
 While the current implementation will revert safely, this approach relies on an implicit safeguard rather than an explicit validation. This makes the code less readable and could lead to confusion about the intended behavior.
 
@@ -1024,7 +1054,8 @@ function invest(IFractionalReserve.FractionalReserveStorage storage $, address _
 
 It's worth noting that the `divest()` functions include explicit checks for vault existence (`if ($.vault[_asset] != address(0)) {`), showing an inconsistency in validation patterns across the library.
 
-## Recommendation Add an explicit check to verify that a vault exists for the asset before proceeding with the investment:
+
+**Recommendation:** Add an explicit check to verify that a vault exists for the asset before proceeding with the investment:
 
 ```diff
 function invest(IFractionalReserve.FractionalReserveStorage storage $, address _asset) external {
@@ -1048,7 +1079,7 @@ function invest(IFractionalReserve.FractionalReserveStorage storage $, address _
 
 ### Borrows can be griefed when token reserves are low
 
-## Description An agent can monitor pending borrow transactions and execute their own borrows through front-running to reduce the token reserves. This will reduce the borrowing capacity returned from `maxBorrowable()` in `validateBorrow()`, causing the victim's transaction to revert with `CollateralCannotCoverNewBorrow()`.
+**Description:** An agent can monitor pending borrow transactions and execute their own borrows through front-running to reduce the token reserves. This will reduce the borrowing capacity returned from `maxBorrowable()` in `validateBorrow()`, causing the victim's transaction to revert with `CollateralCannotCoverNewBorrow()`.
 
 ```solidity
 function validateBorrow(ILender.LenderStorage storage $, ILender.BorrowParams memory params) external {
@@ -1062,7 +1093,8 @@ function validateBorrow(ILender.LenderStorage storage $, ILender.BorrowParams me
 }
 ```
 
-## Recommendation Implement a "magic value" option that allows users to borrow the maximum borrow capacity.
+
+**Recommendation:** Implement a "magic value" option that allows users to borrow the maximum borrow capacity.
 
 ```diff
 function validateBorrow(ILender.LenderStorage storage $, ILender.BorrowParams memory params) external {
@@ -1094,9 +1126,9 @@ This allows users to specify `type(uint256).max` to borrow their maximum capacit
 
 ### Emergency liquidation bonus depends on liquidation start timestamp
 
-## Description The `getBonus()` function calculates the bonus amount based on the liquidation start timestamp. When an emergency liquidation occurs without a prior call to `initiateLiquidation()`, the `$.liquidationStart[agent]` value is zero, leading to a maximum bonus calculation.
+**Description:** The `getBonus()` function calculates the bonus amount based on the liquidation start timestamp. When an emergency liquidation occurs without a prior call to `initiateLiquidation()`, the `$.liquidationStart[agent]` value is zero, leading to a maximum bonus calculation.
 
-However, the same liquidation with a prior call to `initiateLiquidation()` at the current timestamp results in a zero amount bonus.
+However, the same liquidation with a prior call to `initiateLiquidation()` at the current timestamp results in a zero bonus amount.
 
 ```solidity
 function getBonus(
@@ -1123,7 +1155,8 @@ function getBonus(
 
 This inconsistency leads to not incentivizing emergency liquidations when a prior call to `initiateLiquidation()` has been made.
 
-## Recommendation The maximum bonus could be applied to any emergency liquidation for incentivizing liquidating highly unhealthy positions.
+
+**Recommendation:** The maximum bonus could be applied to any emergency liquidation for incentivizing liquidating highly unhealthy positions.
 
 
 **CAP Labs:** Fixed in PR [141](https://github.com/cap-labs-dev/cap-contracts/pull/141).
@@ -1133,7 +1166,7 @@ This inconsistency leads to not incentivizing emergency liquidations when a prio
 
 ### Inconsistent reserve pausing implementation
 
-## Description The `ValidationLogic` library implements a pausing mechanism for reserves via the `validateBorrow()` function which checks if the reserve is paused before allowing a borrow:
+**Description:** The `ValidationLogic` library implements a pausing mechanism for reserves via the `validateBorrow()` function which checks if the reserve is paused before allowing a borrow:
 
 ```solidity
 function validateBorrow(ILender.LenderStorage storage $, ILender.BorrowParams memory params) external {
@@ -1150,7 +1183,8 @@ However, this validation is not consistently applied across all functions that a
 
 These functions can execute borrows directly without checking the paused status of the reserve, which creates an inconsistent security boundary. If a reserve is paused due to security concerns or market conditions, these functions could still issue new borrows, potentially exposing the protocol to risk.
 
-## Recommendation Add the pause validation check to all functions that can issue borrows. For both `realizeInterest()` and `realizeRestakerInterest()`, add a check similar to:
+
+**Recommendation:** Add the pause validation check to all functions that can issue borrows. For both `realizeInterest()` and `realizeRestakerInterest()`, add a check similar to:
 
 ```diff
 function realizeInterest(...) {
@@ -1168,16 +1202,16 @@ function realizeRestakerInterest(...) {
 }
 ```
 
-*Note: This fix will also make `repay` unusable when the contract is pause as `realizeRestakerInterest` would revert.*
+*Note: This fix will also make `repay` unusable when the contract is paused as `realizeRestakerInterest` would revert.*
 
 **CAP Labs:** Fixed in PR [142](https://github.com/cap-labs-dev/cap-contracts/pull/142).
 
-**CAP Security Cartel:** Verified fix. Instead of reverting, `maxRealization()` and `maxRestakerRealization()` have been modified to return zero realized interest (converting this to unrealized for restaker interest), allowing for agents to make repayments even when the reserve has been paused.
+**CAP Security Cartel:** Verified fix. Instead of reverting, `maxRealization()` and `maxRestakerRealization()` have been modified to return zero realized interest (converting this to unrealized for restaker interest), allowing agents to make repayments even when the reserve has been paused.
 
 
 ### Missing parameter validation
 
-## Description The `Lender` contract initialization process lacks proper validation for parameters. Specifically, the `targetHealth` and `bonusCap` parameters do not have boundary checks to ensure they are set within reasonable limits.
+**Description:** The `Lender` contract initialization process lacks proper validation for parameters. Specifically, the `targetHealth` and `bonusCap` parameters do not have boundary checks to ensure they are set within reasonable limits.
 
 Key instances where validation is missing:
 
@@ -1193,7 +1227,8 @@ $.bonusCap = _bonusCap;
 
 Without these validations, the contract could be initialized with unsafe values, potentially leading to economic vulnerabilities or unexpected system behavior.
 
-## Recommendation Add appropriate parameter validation during initialization to ensure all parameters are within safe operating ranges:
+
+**Recommendation:** Add appropriate parameter validation during initialization to ensure all parameters are within safe operating ranges:
 
 ```diff
 // For targetHealth
@@ -1209,13 +1244,14 @@ $.bonusCap = _bonusCap;
 
 **CAP Security Cartel:** Verified fix.
 
+
 \clearpage
 ## Gas Optimization
 
 
 ### Redundant contains check in agent addition
 
-## Description In the `addAgent()` function, there's an unnecessary gas cost due to redundant checks using `EnumerableSet.contains()`. The current implementation performs a `contains()` check to verify if an agent already exists, and then performs an `add()` operation. However, the `add()` function in EnumerableSet also internally performs a `contains()` check and returns a boolean indicating whether the element was actually added.
+**Description:** In the `addAgent()` function, there's an unnecessary gas cost due to redundant checks using `EnumerableSet.contains()`. The current implementation performs a `contains()` check to verify if an agent already exists, and then performs an `add()` operation. However, the `add()` function in EnumerableSet also internally performs a `contains()` check and returns a boolean indicating whether the element was actually added.
 
 The current implementation:
 
@@ -1227,7 +1263,8 @@ $.agents.add(_agent);
 
 This causes duplicate `contains()` checks to be performed for the agent address, resulting in unnecessary gas costs.
 
-## Recommendation Modify the code to use the return value from `add()` to determine if the agent already exists, eliminating the redundant `contains()` check:
+
+**Recommendation:** Modify the code to use the return value from `add()` to determine if the agent already exists, eliminating the redundant `contains()` check:
 
 ```diff
 - if ($.agents.contains(_agent)) revert DuplicateAgent();
@@ -1243,7 +1280,7 @@ This causes duplicate `contains()` checks to be performed for the agent address,
 
 ### Avoid redundant contains check before add in `EnumerableSet`
 
-## Description In the `registerNetwork()` function, there is a redundant check for duplicate networks that can be optimized to save gas. The function currently makes two internal calls to `EnumerableSet.contains()` - one directly in the code and another implicitly inside the `EnumerableSet.add()` method.
+**Description:** In the `registerNetwork()` function, there is a redundant check for duplicate networks that can be optimized to save gas. The function currently makes two internal calls to `EnumerableSet.contains()` - one directly in the code and another implicitly inside the `EnumerableSet.add()` method.
 
 ```solidity
 function registerNetwork(address _network) external checkAccess(this.registerNetwork.selector) {
@@ -1260,7 +1297,8 @@ function registerNetwork(address _network) external checkAccess(this.registerNet
 
 The `EnumerableSet.add()` function already checks for existence internally and returns a boolean indicating whether the element was added (true) or already existed (false).
 
-## Recommendation Modify the `registerNetwork()` function to use the return value from `EnumerableSet.add()` instead of making a separate `contains()` check:
+
+**Recommendation:** Modify the `registerNetwork()` function to use the return value from `EnumerableSet.add()` instead of making a separate `contains()` check:
 
 ```diff
 function registerNetwork(address _network) external checkAccess(this.registerNetwork.selector) {
@@ -1281,5 +1319,6 @@ function registerNetwork(address _network) external checkAccess(this.registerNet
 **CAP Labs:** Fixed in PR [136](https://github.com/cap-labs-dev/cap-contracts/pull/136).
 
 **CAP Security Cartel:** Verified fix.
+
 
 \clearpage

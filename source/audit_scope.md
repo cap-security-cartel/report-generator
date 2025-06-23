@@ -1,112 +1,16 @@
-The audit was started on commit [ad1f8d7](https://github.com/cap-labs-dev/cap-contracts/tree/ad1f8d772585e3c4ba3d308f7ae72d113554978e) for **15** days and a subsequent fix review was conducted on final commit [ad1f8d7](https://github.com/cap-labs-dev/cap-contracts/tree/ad1f8d772585e3c4ba3d308f7ae72d113554978e) that went for **2** days.
+The audit was started on commit [ad1f8d7](https://github.com/cap-labs-dev/cap-contracts/tree/ad1f8d772585e3c4ba3d308f7ae72d113554978e) for **15** days and a subsequent fix review was conducted on final commit [9819fd7](https://github.com/cap-labs-dev/cap-contracts/tree/9819fd7029e5e2ed7b6900cf76fb9bf45be0e319) that went for **2** days.
 
-The following contracts were included as part of the review scope, including any related external dependencies:
-```sh
-access
-├── Access.sol
-└── AccessControl.sol
-delegation
-├── Delegation.sol
-└── providers
-    └── symbiotic
-        ├── Network.sol
-        └── NetworkMiddleware.sol
-feeAuction
-└── FeeAuction.sol
-feeReceiver
-└── FeeReceiver.sol
-interfaces
-├── IAaveDataProvider.sol
-├── IAccess.sol
-├── IAccessControl.sol
-├── ICapToken.sol
-├── IChainlink.sol
-├── IDebtToken.sol
-├── IDelegation.sol
-├── IFeeAuction.sol
-├── IFeeReceiver.sol
-├── IFractionalReserve.sol
-├── ILender.sol
-├── IMiddleware.sol
-├── IMintableERC20.sol
-├── IMinter.sol
-├── INetwork.sol
-├── INetworkMiddleware.sol
-├── IOracle.sol
-├── IOracleTypes.sol
-├── IPriceOracle.sol
-├── IRateOracle.sol
-├── IRestakerRewardReceiver.sol
-├── IScaledToken.sol
-├── IStakedCap.sol
-├── IStakerRewards.sol
-├── IUpgradeableBeacon.sol
-├── IVault.sol
-├── IVaultAdapter.sol
-├── IZapOFTComposer.sol
-└── IZapRouter.sol
-lendingPool
-├── Lender.sol
-├── libraries
-│   ├── BorrowLogic.sol
-│   ├── LiquidationLogic.sol
-│   ├── ReserveLogic.sol
-│   ├── ValidationLogic.sol
-│   ├── ViewLogic.sol
-│   ├── configuration
-│   │   └── AgentConfiguration.sol
-│   └── math
-│       ├── MathUtils.sol
-│       ├── PercentageMath.sol
-│       └── WadRayMath.sol
-└── tokens
-    ├── DebtToken.sol
-    └── base
-        ├── MintableERC20.sol
-        └── ScaledToken.sol
-oracle
-├── Oracle.sol
-├── PriceOracle.sol
-├── RateOracle.sol
-└── libraries
-    ├── AaveAdapter.sol
-    ├── CapTokenAdapter.sol
-    ├── ChainlinkAdapter.sol
-    ├── StakedCapAdapter.sol
-    └── VaultAdapter.sol
-storage
-├── AccessStorageUtils.sol
-├── DebtTokenStorageUtils.sol
-├── DelegationStorageUtils.sol
-├── FeeAuctionStorageUtils.sol
-├── FeeReceiverStorageUtils.sol
-├── FractionalReserveStorageUtils.sol
-├── LenderStorageUtils.sol
-├── MintableERC20StorageUtils.sol
-├── MinterStorageUtils.sol
-├── NetworkMiddlewareStorageUtils.sol
-├── NetworkStorageUtils.sol
-├── PriceOracleStorageUtils.sol
-├── RateOracleStorageUtils.sol
-├── ScaledTokenStorageUtils.sol
-├── StakedCapStorageUtils.sol
-├── VaultAdapterStorageUtils.sol
-└── VaultStorageUtils.sol
-token
-├── CapToken.sol
-├── L2Token.sol
-├── OFTLockbox.sol
-├── OFTPermit.sol
-└── StakedCap.sol
-vault
-├── FractionalReserve.sol
-├── Minter.sol
-├── Vault.sol
-└── libraries
-    ├── FractionalReserveLogic.sol
-    ├── MinterLogic.sol
-    └── VaultLogic.sol
-zap
-├── SafeOFTLzComposer.sol
-└── ZapOFTComposer.sol
-```
+The review scope included the complete CAP protocol smart contract suite, covering the following key components:
+
+- **Access Control**: Permission management and authentication systems
+- **Delegation**: Symbiotic network integration and middleware components  
+- **Lending Pool**: Core lending functionality including borrow/repay logic, liquidations, reserves, and validation
+- **Oracle System**: Price and rate oracles with multiple adapter implementations (Chainlink, Aave, etc.)
+- **Token Infrastructure**: CAP token, staked CAP, debt tokens, and cross-chain OFT implementations
+- **Vault System**: Asset management, minting/burning, and fractional reserve logic
+- **Fee Management**: Fee auction and receiver mechanisms
+- **Cross-Chain Integration**: LayerZero OFT composer and zap functionality
+- **Storage Utilities**: Upgradeable storage patterns for all major components
+- **Interfaces**: Complete interface definitions for all protocol components
+
+The audit covered **112 contract files** across 10 major modules, including all related external dependencies and integrations.
