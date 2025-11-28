@@ -1,6 +1,6 @@
-The audit was started on commit [ad1f8d7](https://github.com/cap-labs-dev/cap-contracts/tree/ad1f8d772585e3c4ba3d308f7ae72d113554978e) for **15** days and a subsequent fix review was conducted on final commit [9819fd7](https://github.com/cap-labs-dev/cap-contracts/tree/9819fd7029e5e2ed7b6900cf76fb9bf45be0e319) that went for **2** days.
+The audit targeted specific PRs [#213](https://github.com/cap-labs-dev/cap-contracts/pull/213), [#223](https://github.com/cap-labs-dev/cap-contracts/pull/223) and [#225](https://github.com/cap-labs-dev/cap-contracts/pull/225) and went for a total of **1** day.
 
-The review scope included the complete CAP protocol smart contract suite, covering the following key components:
+The review scope included the CAP protocol smart contract suite related to the aforementioned PRs, covering the following key components:
 
 - **Access Control**: Permission management and authentication systems
 - **Delegation**: Symbiotic network integration and middleware components  
@@ -12,5 +12,3 @@ The review scope included the complete CAP protocol smart contract suite, coveri
 - **Cross-Chain Integration**: LayerZero OFT composer and zap functionality
 - **Storage Utilities**: Upgradeable storage patterns for all major components
 - **Interfaces**: Complete interface definitions for all protocol components
-
-The audit covered **112 contract files** across 10 major modules, including all related external dependencies and integrations.

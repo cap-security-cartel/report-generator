@@ -112,10 +112,13 @@ def format_inline_code(text):
 
 def calculate_period(review_timeline):
     # Extract start and end dates from the review timeline
-    # `dateutil.parser.parse` is used here to parse date strings with ordinal suffixes
-    dates = [parse(date.strip()) for date in review_timeline.split(' - ')]
-    start_date = dates[0]
-    end_date = dates[1]
+    # `dateutil.parser.parse` handles ordinal suffixes and other formats.
+    timeline_parts = [part.strip() for part in review_timeline.split(' - ') if part.strip()]
+    if not timeline_parts:
+        return 0
+
+    start_date = parse(timeline_parts[0])
+    end_date = parse(timeline_parts[-1]) if len(timeline_parts) > 1 else start_date
 
     # Calculate the number of workdays
     workdays = 0
